@@ -111,9 +111,9 @@ def share_result(result_id):
                  "username": row[0],
                  "score": row[1],
                  "timestamp": row[2]
-           })
-     else:
-           return jsonify({'error': 'Result not found'}), 404
+            })
+      else:
+            return jsonify({'error': 'Result not found'}), 404
 
 # Pokretanje servera
 if __name__ == '__main__':
