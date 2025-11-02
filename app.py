@@ -3,10 +3,11 @@ from flask import Flask, request, jsonify
 import sqlite3
 from datetime import datetime
 from flask_cors import CORS
+
+app = Flask(__name__)
 CORS(app)
 from flask import request, jsonify
 
-app = Flask(__name__)
 
 # Funkcija za povezivanje sa bazom
 def get_db_connection():
@@ -99,21 +100,20 @@ def leaderboard_year():
 
 # Endpoint za pojedinačan rezultat (za šerovanje)
 @app.route('/result/<int:result_id>', methods=['GET'])
-def share_result(result_id):
-      conn = get_db_connection("kviz.db")
-      c = conn.cursor()
-      row = conn.execute('SELECT username, score, timestamp FROM results WHERE id = ?', (result_id,)).fetchone()
-      row = c.fetchone()
-      conn.close()
-
-      if row:
-           return jsonify({
-                 "username": row[0],
-                 "score": row[1],
-                 "timestamp": row[2]
-            })
-      else:
-            return jsonify({'error': 'Result not found'}), 404
+def result(result_id):
+    conn = get_db_connection("kviz.db")
+    c = conn.cursor()
+    row = conn.execute('SELECT username, score, timestamp FROM results WHERE id = ?', (result_id,)).fetchone()
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return jsonify({
+            "username": row[0],
+            "score": row[1],
+            "timestamp": row[2]
+        })
+    else:
+        return jsonify({'error': 'Result not found'}), 404
 
 # Pokretanje servera
 if __name__ == '__main__':
