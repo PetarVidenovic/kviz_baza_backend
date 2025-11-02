@@ -6,14 +6,15 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-from flask import request, jsonify
 
+DATABASE = 'savez_quiz.db'
 
 # Funkcija za povezivanje sa bazom
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
 @app.route("/")
 def index():
     return "Kviz backend je online! 🚀"
@@ -22,51 +23,39 @@ def index():
 def ping():
     return jsonify({"status": "OK"}), 200
 
-
 # Endpoint za slanje rezultata
 @app.route('/submit', methods=['POST'])
-def submit():
+def submit_score():
     data = request.get_json()
     username = data.get('username')
     score = data.get('score')
 
+    if not username or score is None:
+        return jsonify({"error": "Missing data"}), 400
+
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('INSERT INTO results (username, score) VALUES (?, ?)', (username, score))
+    cur.execute('''
+        INSERT INTO results (date, quiz, section, player)
+        VALUES (?, ?, ?, ?)
+    ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), score, 'van_takmicenja', username))
     conn.commit()
     result_id = cur.lastrowid
     conn.close()
 
-    return jsonify({'status': 'success', 'id': result_id})
-
-
-@app.route("/submit", methods=["POST"])
-def submit_score():
-    data = request.get_json()
-    username = data.get("username")
-    score = data.get("score")
-
-    if not username or score is None:
-        return jsonify({"error": "Nedostaje username ili score"}), 400
-
-    conn = sqlite3.connect("kviz.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (username, score))
-    conn.commit()
-    conn.close()
-
     share_url = f"https://kviz-baza-backend-1.onrender.com/share/{result_id}"
-    return jsonify({
-        "message": "Rezultat uspešno sačuvan",
-        "share_url": share_url
-    }), 201
-
+    return jsonify({"share_url": share_url}), 201
 
 # Endpoint za rang listu svih vremena
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
     conn = get_db_connection()
-    results = conn.execute('SELECT username, score FROM results ORDER BY score DESC LIMIT 10').fetchall()
+    results = conn.execute('''
+        SELECT player AS username, quiz AS score
+        FROM results
+        ORDER BY quiz DESC
+        LIMIT 10
+    ''').fetchall()
     conn.close()
     return jsonify([dict(row) for row in results])
 
@@ -76,11 +65,14 @@ def leaderboard_month():
     now = datetime.now()
     month = now.strftime('%m')
     year = now.strftime('%Y')
+
     conn = get_db_connection()
     results = conn.execute('''
-        SELECT username, score FROM results
-        WHERE strftime('%m', timestamp) = ? AND strftime('%Y', timestamp) = ?
-        ORDER BY score DESC LIMIT 10
+        SELECT player AS username, quiz AS score
+        FROM results
+        WHERE strftime('%m', date) = ? AND strftime('%Y', date) = ?
+        ORDER BY quiz DESC
+        LIMIT 10
     ''', (month, year)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in results])
@@ -89,11 +81,14 @@ def leaderboard_month():
 @app.route('/leaderboard/year', methods=['GET'])
 def leaderboard_year():
     year = datetime.now().strftime('%Y')
+
     conn = get_db_connection()
     results = conn.execute('''
-        SELECT username, score FROM results
-        WHERE strftime('%Y', timestamp) = ?
-        ORDER BY score DESC LIMIT 10
+        SELECT player AS username, quiz AS score
+        FROM results
+        WHERE strftime('%Y', date) = ?
+        ORDER BY quiz DESC
+        LIMIT 10
     ''', (year,)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in results])
@@ -101,16 +96,19 @@ def leaderboard_year():
 # Endpoint za pojedinačan rezultat (za šerovanje)
 @app.route('/result/<int:result_id>', methods=['GET'])
 def result(result_id):
-    conn = get_db_connection("kviz.db")
-    c = conn.cursor()
-    row = conn.execute('SELECT username, score, timestamp FROM results WHERE id = ?', (result_id,)).fetchone()
-    row = c.fetchone()
+    conn = get_db_connection()
+    row = conn.execute('''
+        SELECT player AS username, quiz AS score, date
+        FROM results
+        WHERE id = ?
+    ''', (result_id,)).fetchone()
     conn.close()
+
     if row:
         return jsonify({
-            "username": row[0],
-            "score": row[1],
-            "timestamp": row[2]
+            "username": row["username"],
+            "score": row["score"],
+            "timestamp": row["date"]
         })
     else:
         return jsonify({'error': 'Result not found'}), 404
@@ -118,3 +116,5 @@ def result(result_id):
 # Pokretanje servera
 if __name__ == '__main__':
     app.run(debug=True)
+
+
