@@ -3,10 +3,10 @@ from flask import Flask, request, jsonify
 import sqlite3
 from datetime import datetime
 from flask_cors import CORS
+app = Flask(__name__)
 CORS(app)
 from flask import request, jsonify
 
-app = Flask(__name__)
 
 # Funkcija za povezivanje sa bazom
 def get_db_connection():
