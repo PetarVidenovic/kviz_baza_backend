@@ -99,20 +99,21 @@ def leaderboard_year():
 
 # Endpoint za pojedinačan rezultat (za šerovanje)
 @app.route('/result/<int:result_id>', methods=['GET'])
-def result(result_id):
-    conn = get_db_connection("kviz.db")
-    c = conn.cursor()
-    row = conn.execute('SELECT username, score, timestamp FROM results WHERE id = ?', (result_id,)).fetchone()
-    row = c.fetchone()
-    conn.close()
-    if row:
-        return jsonify(dict(row))
-            "username": row[0],
-            "score": row[1],
-            "timestamp": row[2]
-        })
-    else:
-        return jsonify({'error': 'Result not found'}), 404
+def share_result(result_id):
+      conn = get_db_connection("kviz.db")
+      c = conn.cursor()
+      row = conn.execute('SELECT username, score, timestamp FROM results WHERE id = ?', (result_id,)).fetchone()
+      row = c.fetchone()
+      conn.close()
+
+      if row:
+           return jsonify({
+                 "username": row[0],
+                 "score": row[1],
+                 "timestamp": row[2]
+           })
+     else:
+           return jsonify({'error': 'Result not found'}), 404
 
 # Pokretanje servera
 if __name__ == '__main__':
