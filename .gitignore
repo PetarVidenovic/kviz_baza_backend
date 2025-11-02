@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# SQLite baza
+*.db
+
+# Virtualno okruženje
+venv/
+env/
+ENV/
+
+# IDE i editori
+.vscode/
+.idea/
+*.swp
+
+# OS fajlovi
+.DS_Store
+Thumbs.db
+
+# Tokeni, konfiguracije
+.env
+*.pem
