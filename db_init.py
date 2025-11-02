@@ -1,19 +1,21 @@
 import sqlite3
 
-# Povezivanje sa bazom (kreira fajl ako ne postoji)
-conn = sqlite3.connect('database.db')
-c = conn.cursor()
+DATABASE = 'savez_quiz.db'
 
-# Kreiranje tabele za rezultate
-c.execute('''
-CREATE TABLE IF NOT EXISTS results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    score REAL NOT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-''')
+def init_db():
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            quiz REAL NOT NULL,
+            section TEXT,
+            player TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print("✅ Baza uspešno inicijalizovana.")
 
-conn.commit()
-conn.close()
-print("✅ Baza je uspešno kreirana.")
+
