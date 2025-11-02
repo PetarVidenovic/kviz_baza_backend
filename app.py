@@ -1,6 +1,10 @@
+import db_init
 from flask import Flask, request, jsonify
 import sqlite3
 from datetime import datetime
+from flask_cors import CORS
+CORS(app)
+from flask import request, jsonify
 
 app = Flask(__name__)
 
@@ -12,6 +16,11 @@ def get_db_connection():
 @app.route("/")
 def index():
     return "Kviz backend je online! 🚀"
+
+@app.route("/ping")
+def ping():
+    return jsonify({"status": "OK"}), 200
+
 
 # Endpoint za slanje rezultata
 @app.route('/submit', methods=['POST'])
@@ -28,6 +37,25 @@ def submit():
     conn.close()
 
     return jsonify({'status': 'success', 'id': result_id})
+
+
+@app.route("/submit", methods=["POST"])
+def submit_score():
+    data = request.get_json()
+    username = data.get("username")
+    score = data.get("score")
+
+    if not username or score is None:
+        return jsonify({"error": "Nedostaje username ili score"}), 400
+
+    conn = sqlite3.connect("kviz.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (username, score))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Rezultat uspešno sačuvan"}), 201
+
 
 # Endpoint za rang listu svih vremena
 @app.route('/leaderboard', methods=['GET'])
