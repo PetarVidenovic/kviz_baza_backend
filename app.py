@@ -75,7 +75,7 @@ def leaderboard_month():
         FROM results
         WHERE strftime('%m', date) = ? AND strftime('%Y', date) = ?
         ORDER BY quiz DESC
-        LIMIT 10
+        LIMIT 5
     ''', (month, year)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in results])
@@ -115,6 +115,101 @@ def result(result_id):
         })
     else:
         return jsonify({'error': 'Result not found'}), 404
+
+@app.route('/results', methods=['GET'])
+def all_results():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT id, date, quiz, section, player
+        FROM results
+        ORDER BY id DESC
+    ''')
+    rows = cur.fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+@app.route('/share/<int:result_id>', methods=['GET'])
+def share(result_id):
+    return result(result_id)
+    
+@app.route('/health', methods=['GET'])
+def health():
+    try:
+        conn = get_db_connection()
+        conn.execute('SELECT 1')
+        conn.close()
+        return jsonify({"status": "ok"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "details": str(e)}), 500
+
+@app.route('/result/top', methods=['GET'])
+def result_top():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT player, quiz, section, date
+        FROM results
+        ORDER BY quiz DESC
+        LIMIT 10
+    ''')
+    rows = cur.fetchall()
+    conn.close()
+
+    html = "<h2>Top 10 rezultata</h2><ol>"
+    for row in rows:
+        html += f"<li><strong>{row['player']}</strong> — {row['quiz']} poena ({row['section']}, {row['date']})</li>"
+    html += "</ol>"
+    return html
+
+@app.route('/result/top30', methods=['GET'])
+def result_top30():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT player, quiz, section, date
+        FROM results
+        WHERE section = 'prvih_30_dana'
+        ORDER BY quiz DESC
+        LIMIT 10
+    ''')
+    rows = cur.fetchall()
+    conn.close()
+
+    html = """
+    <html>
+    <head><title>Top 10 rezultata — Prvih 30 dana</title></head>
+    <body>
+    <h2>Top 10 rezultata za sekciju: <em>prvih_30_dana</em></h2>
+    <ol>
+    """
+    for row in rows:
+        html += f"<li><strong>{row['player']}</strong> — {row['quiz']} poena ({row['date']})</li>"
+    html += """
+    </ol>
+    </body>
+    </html>
+    """
+    return html
+
+@app.route('/competition/register', methods=['POST'])
+def register_for_competition():
+    data = request.get_json()
+    player = data.get('player')
+
+    if not player:
+        return jsonify({'error': 'Nedostaje ime igrača'}), 400
+
+    # Možeš dodati logiku da proveriš da li je već prijavljen
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO results (date, quiz, section, player)
+        VALUES (?, ?, ?, ?)
+    ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 0, 'arena_prijava', player))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': f'Igrač {player} je prijavljen u arenu'}), 201
 
 # Pokretanje servera
 if __name__ == '__main__':
